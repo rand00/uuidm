@@ -5,16 +5,33 @@
 
 let strf = Printf.sprintf
 
+let read_all_stdin () =
+  let max_len = 200 in
+  let buffer = Bytes.create max_len in
+  let rec aux len_read =
+    if len_read >= max_len then
+      failwith "Input too large"
+    else
+    let len_to_read = min max_len (max_len - len_read) in
+    let read_now = Unix.(read stdin buffer len_read len_to_read) in
+    if read_now = 0 then
+      Bytes.(to_string (sub buffer 0 len_read))
+    else
+    aux (len_read + read_now)
+  in
+  aux 0
+
 let gen convert version ns name upper binary =
   let u = match convert with
-  | None -> 
+  | false -> 
       let version = match version with
       | `V3 -> `V3 (ns, name)
       | `V4 -> `V4
       | `V5 -> `V5 (ns, name)
       in
       Uuidm.v version
-  | Some uuid ->
+  | true ->
+      let uuid = read_all_stdin () in
       let parse = if binary then Uuidm.of_bytes else Uuidm.of_string in
       match parse uuid with
       | Some u -> u
@@ -67,7 +84,7 @@ let name_ =
 let convert =
   let doc = "Convert the given uuid (in byte or hex representation) \
              instead of generating." in
-  Arg.(value & opt (some string) None & info ["convert"] ~doc)
+  Arg.(value & flag & info ["convert"] ~doc)
 
 let upper =
   let doc = "Output hexadecimal letters in uppercase" in
