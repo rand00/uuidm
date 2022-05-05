@@ -15,14 +15,10 @@ let gen convert version ns name upper binary =
       in
       Uuidm.v version
   | Some uuid ->
-      begin match Uuidm.of_bytes uuid with
+      let parse = if binary then Uuidm.of_bytes else Uuidm.of_string in
+      match parse uuid with
       | Some u -> u
-      | None ->
-          begin match Uuidm.of_string uuid with
-          | Some u -> u
-          | None -> failwith "Invalid uuid given"
-          end
-      end
+      | None -> failwith "Invalid uuid given"
   in
   let s = match binary with
   | true -> Uuidm.to_bytes u
