@@ -5,13 +5,25 @@
 
 let strf = Printf.sprintf
 
-let gen version ns name upper binary =
-  let version = match version with
-  | `V3 -> `V3 (ns, name)
-  | `V4 -> `V4
-  | `V5 -> `V5 (ns, name)
+let gen convert version ns name upper binary =
+  let u = match convert with
+  | None -> 
+      let version = match version with
+      | `V3 -> `V3 (ns, name)
+      | `V4 -> `V4
+      | `V5 -> `V5 (ns, name)
+      in
+      Uuidm.v version
+  | Some uuid ->
+      begin match Uuidm.of_bytes uuid with
+      | Some u -> u
+      | None ->
+          begin match Uuidm.of_string uuid with
+          | Some u -> u
+          | None -> failwith "Invalid uuid given"
+          end
+      end
   in
-  let u = Uuidm.v version in
   let s = match binary with
   | true -> Uuidm.to_bytes u
   | false -> strf "%s\n" (Uuidm.to_string ~upper u)
@@ -56,6 +68,11 @@ let name_ =
   let doc = "Name for name based UUIDs (version 4 or 5)." in
   Arg.(value & opt string "www.example.org" & info ["name"] ~doc)
 
+let convert =
+  let doc = "Convert the given uuid (in byte or hex representation) \
+             instead of generating." in
+  Arg.(value & opt (some string) None & info ["convert"] ~doc)
+
 let upper =
   let doc = "Output hexadecimal letters in uppercase" in
   Arg.(value & flag & info ["u"; "uppercase"] ~doc)
@@ -82,7 +99,7 @@ let cmd =
         See %%PKG_HOMEPAGE%% for contact information."; ]
   in
   Cmd.v (Cmd.info "uuidtrip" ~version:"%%VERSION%%" ~doc ~man)
-    Term.(const gen $ version $ ns $ name_ $ upper $ binary)
+    Term.(const gen $ convert $ version $ ns $ name_ $ upper $ binary)
 
 
 let () = exit (Cmd.eval cmd)
