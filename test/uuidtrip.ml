@@ -23,16 +23,19 @@ let read_all_stdin () =
 
 let gen convert version ns name upper binary =
   let u = match convert with
-  | false -> 
+  | None -> 
       let version = match version with
       | `V3 -> `V3 (ns, name)
       | `V4 -> `V4
       | `V5 -> `V5 (ns, name)
       in
       Uuidm.v version
-  | true ->
+  | Some format ->
       let uuid = read_all_stdin () in
-      let parse = if binary then Uuidm.of_bytes else Uuidm.of_string in
+      let parse = match format with
+      | `Convert_bin -> Uuidm.of_bytes
+      | `Convert_hex -> Uuidm.of_string
+      in
       match parse uuid with
       | Some u -> u
       | None -> failwith "Invalid uuid given"
@@ -82,9 +85,17 @@ let name_ =
   Arg.(value & opt string "www.example.org" & info ["name"] ~doc)
 
 let convert =
-  let doc = "Convert the given uuid (in byte or hex representation) \
-             instead of generating." in
-  Arg.(value & flag & info ["convert"] ~doc)
+  let convert_hex = 
+    let doc = "Convert the given uuid (via stdin) in hex representation, \
+               instead of generating." in
+    Some `Convert_hex, Arg.info ["convert-hex"] ~doc
+  in
+  let convert_bin = 
+    let doc = "Convert the given uuid (via stdin) in binary representation, \
+               instead of generating." in
+    Some `Convert_bin, Arg.info ["convert-bin"] ~doc
+  in
+  Arg.(value & vflag None [ convert_hex; convert_bin ])
 
 let upper =
   let doc = "Output hexadecimal letters in uppercase" in
